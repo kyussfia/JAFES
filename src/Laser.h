@@ -23,7 +23,7 @@
         this->Y.attach(servoPin2);
         this->X.write(180);
         this->Y.write(0);
-        delay(1000); //500 would be enough, but this is goog now
+        delay(1000); //500 would be enough, but this is good now
      }
 
      void move(short degree) {
@@ -31,7 +31,7 @@
         int YtimeToMove = getRequiredTimeToMoveToDegree(this->Y.read(), 180 - degree);
         this->X.write(degree);
         this->Y.write(180 - degree);
-        delay(max(XtimeToMove, YtimeToMove));
+        delay(max(XtimeToMove, YtimeToMove)); //wait to reach position
      }
 
    private:

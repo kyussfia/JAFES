@@ -2,15 +2,21 @@
 #define WIFI
 
   #include <ESP8266WiFi.h>
+  #include <NTPClient.h>
   #include <ESP8266mDNS.h>
   #include <WiFiUdp.h>
   #include <ArduinoOTA.h>
   #include "Leds.h"
 
-  const char* ssid = "your-ssid";
-  const char* pwd = "your-wifi-pwd";
+  const char* ssid = "T-F07924";
+  const char* pwd = "9rp39hW6MNScdv73";
+  const long utcOffsetInSeconds = 3600;
+  char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
   const short attemptsToConnect = 20;
+
+  WiFiUDP ntpUDP;
+  NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", utcOffsetInSeconds);
 
   void connectToWifi(bool useStatusLeds) {
     Serial.begin(115200);         // Start the Serial communication to send messages to the computer
@@ -33,6 +39,8 @@
       delay(3000);
       ESP.restart();
     }
+
+    timeClient.begin();
 
     if (useStatusLeds) {
       toogleWifiLed(true);
