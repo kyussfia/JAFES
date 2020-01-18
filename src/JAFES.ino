@@ -18,7 +18,7 @@ unsigned long lastPlayBegun = 0;
 unsigned long lastMove = 0;
 const unsigned long nonPlayTime = 1800000; //30 minutes 1800000
 const unsigned long playTime = 600000; //10 minutes 600000
-unsigned long dTime = 2000;
+unsigned long dTime = 0;
 
 void setup() {
   if (useStatusLeds) {
@@ -37,7 +37,9 @@ void loop()
   WiFiClient client = localServer->listen();  
   if (client) {
     String request = localServer->receive(client);
-    if (handleRequest(request)) {
+    bool shouldRedirect = handleRequest(request);
+    Serial.print("Should redirect ");Serial.println(shouldRedirect);
+    if (shouldRedirect) {
       localServer->redirect(client);
       localServer->close(client);
     } else {
@@ -59,6 +61,7 @@ bool sleepTime() {
 }
 
 bool handleRequest(String request) {
+  Serial.println(request);
   if (request.indexOf("GET /status/on") >= 0 && !isPlaying) {
       lastPlayEnd = millis() + nonPlayTime;
       return true;
@@ -88,7 +91,7 @@ void play(unsigned long current) {
   if (!isTimeOver(current)) {
     laser->on();
     if (isItAbleToMove(current)) {
-      laser->move(random(0, 6) * 30);
+      laser->move(random(0, 4) * 60);
       lastMove = current;
       dTime = random(0, 3000);
     }     

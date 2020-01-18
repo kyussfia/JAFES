@@ -17,6 +17,7 @@ class LocalServer {
       this->httpHeader(client);
       this->html(client);
       this->head(client, false);
+      Serial.println("Redirect");
       this->redirection(client);
     }
 
@@ -24,13 +25,14 @@ class LocalServer {
       this->httpHeader(client);
       this->html(client);
       this->head(client, true);
+      Serial.print("Serve status: ");Serial.print(status);Serial.print(" sleep: ");Serial.println(sleepingMode);
       this->body(client, status, sleepingMode);
     }
 
     // read untill the second \n to get url only
     String receive(WiFiClient client) {
       String request = "";
-      if (client.available()) {
+      if (client.connected()) {
         char c;
         bool firstLine = false;
         while (-1 != (c = client.read()) && !firstLine) {
