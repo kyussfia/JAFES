@@ -7,7 +7,7 @@
 #define laserPin 5 //D1
 #define laserPwm 70
 
-bool useStatusLeds = true;
+bool useStatusLeds = false;
 Laser* laser;
 LocalServer* localServer;
 
@@ -16,7 +16,7 @@ bool sleepingMode = false;
 unsigned long lastPlayEnd = 0;
 unsigned long lastPlayBegun = 0;
 unsigned long lastMove = 0;
-const unsigned long nonPlayTime = 1800000; //30 minutes 1800000
+const unsigned long nonPlayTime = 3600000; //30 minutes 1800000 // 1 hour 3 600 000
 const unsigned long playTime = 600000; //10 minutes 600000
 unsigned long dTime = 0;
 
@@ -93,9 +93,9 @@ void play(unsigned long current) {
   if (!isTimeOver(current)) {
     laser->on();
     if (isItAbleToMove(current)) {
-      laser->move(random(0, 4) * 60);
+      laser->moveSeparate(random(0, 31), 90 + random(0, 91));
       lastMove = current;
-      dTime = random(0, 3000);
+      dTime = random(0, 4000);
     }     
   } else {
     laser->off();
