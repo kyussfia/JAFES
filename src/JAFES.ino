@@ -39,7 +39,10 @@ void loop()
     String request = localServer->receive(client);
     bool shouldRedirect = handleRequest(request);
     Serial.print("Should redirect ");Serial.println(shouldRedirect);
-    if (shouldRedirect) {
+    if (request.indexOf("TIMEOUT") >= 0) {
+      localServer->timeout(client);
+      localServer->close(client);
+    } else if (shouldRedirect) {
       localServer->redirect(client);
       localServer->close(client);
     } else {
@@ -61,7 +64,6 @@ bool sleepTime() {
 }
 
 bool handleRequest(String request) {
-  Serial.println(request);
   if (request.indexOf("GET /status/on") >= 0 && !isPlaying) {
       lastPlayEnd = millis() + nonPlayTime;
       return true;

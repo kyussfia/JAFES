@@ -29,19 +29,38 @@ class LocalServer {
       this->body(client, status, sleepingMode);
     }
 
+    void timeout(WiFiClient client) {
+      this->httpHeader(client);
+      this->html(client);
+      this->head(client, false);
+      client.println("<body><h1>JAFES Web Server</h1>");
+      client.println("<h2>TIMEOUT</h2>");
+      client.println("</body></html>");
+      client.println();
+      
+    }
+
     // read untill the second \n to get url only
     String receive(WiFiClient client) {
       String request = "";
       if (client.connected()) {
         char c;
         bool firstLine = false;
-        while (-1 != (c = client.read()) && !firstLine) {
+        unsigned long connectedTime = millis();
+        bool timeouted = false;
+        while (-1 != (c = client.read()) && !firstLine && !timeouted) {
+          timeouted =  millis() - connectedTime > this->timeoutTime;
+          Serial.print(c);
           request += c;
           if (c == '\n') {
             firstLine = true;
           }
         }
+        if (timeouted) {
+          return "TIMEOUT";
+        }
       }
+      Serial.println("");
       return request;
     }
 
@@ -51,6 +70,7 @@ class LocalServer {
 
   private:
     WiFiServer* srv;
+    const unsigned long timeoutTime = 5000;
     
     void httpHeader(WiFiClient client) {
       client.println("HTTP/1.1 200 OK");
