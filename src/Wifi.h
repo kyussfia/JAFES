@@ -1,101 +1,75 @@
 #ifndef WIFI
 #define WIFI
+#include "Arduino.h"
+#include "wl_definitions.h"
+#include "HardwareSerial.h"
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 
-  #include <ESP8266WiFi.h>
-  #include <NTPClient.h>
-  #include <ESP8266mDNS.h>
-  #include <WiFiUdp.h>
-  #include <ArduinoOTA.h>
-  #include "Leds.h"
+namespace Wifi {
 
-  const char* ssid = "T-F07924";
-  const char* pwd = "9rp39hW6MNScdv73";
-  const long utcOffsetInSeconds = 3600;
   char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-  const short attemptsToConnect = 20;
+  bool scan(const char* ssid) {
+    Serial.print("Scanning WiFi...");
+    int n = WiFi.scanNetworks();
+    Serial.printf("Found %d networks:\n", n);
+    Serial.println("--------------------------------------------------");
 
-  WiFiUDP ntpUDP;
-  NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", utcOffsetInSeconds);
 
-  void connectToWifi(bool useStatusLeds) {
-    Serial.begin(115200);         // Start the Serial communication to send messages to the computer
-    Serial.println("Booting");
-    Serial.println('\n');
+    bool ssidFound = false;
+    for (int i = 0; i < n; i++) {
+      bool addExtraSpace = n > 9 && i < 10; 
+      Serial.printf("%d:%s %s (%d dBm) %s\n", i + 1, (addExtraSpace ? " " : ""), WiFi.SSID(i).c_str(), WiFi.RSSI(i), (WiFi.encryptionType(i) == ENC_TYPE_NONE) ? "OPEN" : "SECURED");
+      if (WiFi.SSID(i) == ssid) {
+        ssidFound = true;
+      }
+    }
+    Serial.println("--------------------------------------------------");
+
+    return ssidFound;
+  }
+
+  bool setup(const char* ssid, const char* pwd, int maxConnectionAttempts) {
+    bool ssidFound = scan(ssid);
+    if (!ssidFound) {
+      Serial.print("ERROR: SSID (");Serial.print(ssid);Serial.println(") not found in scan!");
+      return false;
+    }
+    Serial.println("Initiating WiFi connection:");
+
     WiFi.mode(WIFI_STA);
+    WiFi.onStationModeDisconnected([](const WiFiEventStationModeDisconnected& event) {
+      Serial.print("WiFi disconnect Reason code: ");Serial.println(event.reason);
+    });
     WiFi.begin(ssid, pwd);
+
     Serial.print("Connecting to ");Serial.print(ssid);
 
-    for(int i = 0; i < attemptsToConnect && WiFi.status() != WL_CONNECTED; i++) {
+    wl_status_t status = WiFi.status();
+    for(int i = 0; i < maxConnectionAttempts && status != WL_CONNECTED; i++) {
       toogleWifiLed(true);
       delay(500);
+
+      wl_status_t newStatus = WiFi.status();
+      if (status != newStatus) {
+        status = newStatus;
+        Serial.print("Status: ");Serial.println(status);
+      }
       Serial.print('.');
       toogleWifiLed(false);
       delay(500);
     }
 
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("Connection Failed! Rebooting...");
-      delay(3000);
-      ESP.restart();
+    if (status != WL_CONNECTED) {
+      Serial.println("Connection Failed!\n");
+      return false;
     }
 
-    timeClient.begin();
+    Serial.print("\nConnected! IP address:\t\t");Serial.println(WiFi.localIP());
 
-    if (useStatusLeds) {
-      toogleWifiLed(true);
-    }
-
-    // Port defaults to 8266
-    // ArduinoOTA.setPort(8266);
-  
-    // Hostname defaults to esp8266-[ChipID]
-    // ArduinoOTA.setHostname("myesp8266");
-  
-    // No authentication by default
-    // ArduinoOTA.setPassword("admin");
-  
-    // Password can be set with it's md5 value as well
-    // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
-    // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
-
-   ArduinoOTA.onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH) {
-        type = "sketch";
-      } else { // U_FS
-        type = "filesystem";
-      }
-  
-      // NOTE: if updating FS this would be the place to unmount FS using FS.end()
-      Serial.println("Start updating " + type);
-    });
-    ArduinoOTA.onEnd([]() {
-      Serial.println("\nEnd");
-    });
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    });
-    ArduinoOTA.onError([](ota_error_t error) {
-      Serial.printf("Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) {
-        Serial.println("Auth Failed");
-      } else if (error == OTA_BEGIN_ERROR) {
-        Serial.println("Begin Failed");
-      } else if (error == OTA_CONNECT_ERROR) {
-        Serial.println("Connect Failed");
-      } else if (error == OTA_RECEIVE_ERROR) {
-        Serial.println("Receive Failed");
-      } else if (error == OTA_END_ERROR) {
-        Serial.println("End Failed");
-      }
-    });
-    ArduinoOTA.begin();
-    Serial.println("\nConnected! IP address:\t");  
-    Serial.println(WiFi.localIP());
+    return true;
   }
+}
 
-  void OTA() {
-    ArduinoOTA.handle();
-  }
 #endif
